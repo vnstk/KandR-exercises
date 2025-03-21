@@ -1,5 +1,5 @@
 # KandR-exercises
-Solutions to (most of) exercises in 2nd edition of K&amp;R.
+Solutions to (most of) exercises in 2nd edition of K&amp;R.</br></br>Needless to say, work done <b><i>without</i></b> any Copilot &OpenCurlyDoubleQuote;assistance&CloseCurlyDoubleQuote;: the point is to polish my C skills, not my Control-C Control-V skills.
 
 Not done because judged trivial:<br/><ul>
 	<li>1-1 (p8)
