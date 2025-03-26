@@ -1,0 +1,96 @@
+# Vainstein K 2025mar25
+#
+# basic functionality that the original had
+9.5 2 - 6 5.3 * *
+>	238.5
+
+# negative numbers
+1 2 - 4 5 * *
+>	-20
+
+# mod
+23 5 %
+>	3
+
+# mod
+0 5 %
+>	0
+
+# mod
+23 0 %
+>	ERR
+
+# float but not a representable one
+1.2e34567890000000000000000000000000 42 *
+>	ERR
+
+# not even a float
+1.2.3e45678900.0000000000000000.0000000 42 *
+>	ERR
+
+# swap (topmost 2 elements on stack)
+7 3 swap -
+>	-4
+
+# swap needs at least 2 elements on the stack
+7 3 - swap
+>	ERR
+
+# dup
+6 dup *
+>	36
+
+# top, unlike dup, merely prints the 1 topmost element; it does not modify the stack.
+6 top *
+>	ERR
+
+# variables
+3 11 * a store
+99 77 -
+10 a load *
+>	330
+
+# variables
+3 11 * a store
+99 77 -
+10 b load *
+>	ERR
+
+# pseudovariable '_' holds last-printed number
+7 9 *
+10 _ load *
+>	630
+
+# sqrt
+9 sqrt
+> 3
+
+# since taking square root of negative number is merely a venial sin (unlike the mortal sin of dividing by zero), we can rely on the C runtime to detect the problem of bad argument (bad _domain_) instead of checking the precondition ourselves.
+-9 sqrt
+>	ERR
+
+# Per https://en.cppreference.com/w/c/numeric/math/exp, For IEEE-compatible type double, overflow is guaranteed if 709.8 < arg
+710 exp
+>	ERR
+
+# Per https://en.cppreference.com/w/c/numeric/math/exp, For IEEE-compatible type double, underflow is guaranteed if arg < -708.4; but underflow in this case is not considered an error.
+-710 exp
+
+# Per https://en.cppreference.com/w/c/error/errno_macros, log(-1.0) will fail with EDOM
+-1 log
+>	ERR
+
+# Per https://en.cppreference.com/w/c/error/errno_macros, log(0.0) will fail with ERANGE
+0 log
+>	ERR
+
+# but this should be fine; note, also tests pow
+2.718281828 5 pow top x store
+x load log
+>	5
+
+# clear the stack.   pow(2,30/(5%(4*(6+7)))) = pow(2,30/(5%17)) = pow(2,6) = 64
+2 30 5 4 6 7 + * % / pow
+2 30 5 4 6 7 clear + * % / pow
+>	64 and then buncha ERRs
+
