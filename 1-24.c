@@ -12,7 +12,7 @@
 /* Notes:
 	a.-j.	Largely an elaboration of 1-23.c; see there for comments which apply here as well.
 	k.	For validation, run
-	                                  bash 1-24__extra_tests.sh
+	                                  bash 1-24_runTests.sh
 	l.	For addit'l negative validation, just run with this very source file as input.
 */
 
