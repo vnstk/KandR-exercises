@@ -13,19 +13,14 @@ int iNextAvail = 0; /* Assume this will've been reset to 0 */
 
 int getch(void)  /* get a (possibly pushed-back) character */
 {
-    const int retval = (iNextAvail < strlen(buf)) ? buf[iNextAvail++] : EOF;
-	printf("getch gets '%c' == %d\n", (char)retval, retval);
-    return retval; /* (iNextAvail < strlen(buf)) ? buf[iNextAvail++] : EOF; */
+	return (iNextAvail < strlen(buf)) ? buf[iNextAvail++] : EOF;
 }
 void ungetch(int c)   /* push character back on input */
 {
     if (! iNextAvail)
         printf("Cannot ungetch '%c' before buf populated\n", c);
     else {
-		const char chprev = buf[--iNextAvail];
-		if (chprev != c)
-			printf("Strange: asking to ungetch '%c' but prevch '%c'\n", c,chprev);
-		buf[iNextAvail] = c;
+		buf[--iNextAvail] = c;
 	}
 }
 
