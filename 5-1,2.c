@@ -59,15 +59,15 @@ int getintBook(int *pn) /*Copied from p97.*/
 int getintRefusesMereSign(int *const pn)
 {
 	int ctDigits = 0;
-   int c, sign=0;
-   while (isspace(c = getch()))   /* skip whitespace */
-	   ;
+	int c, sign=0;
+	while (isspace(c = getch()))   /* skip whitespace */
+		;
 	if (c == EOF)
 		return c;
-   if (!isdigit(c) && c != EOF && c != '+' && c != '-') {
-	   ungetch(c);  /* it is not a number */
-	   return 0;
-   }
+	if (!isdigit(c) && c != EOF && c != '+' && c != '-') {
+		ungetch(c);  /* it is not a number */
+		return 0;
+	}
 	if (c == '-')
 		sign = -1;
 	else if (c == '+')
@@ -102,9 +102,8 @@ int getfloat (ourFloat_t *const pf)
 {
 #define CHECK(cond) do {   \
 	if (! (cond)) {   \
-		printf("\t\e[31;7mLn%3d\e[0m  [ch='%c' now:M_i=%c,M_fr=%c,E=%c]  Cond \"" #cond "\" holds not.\n",   \
-			__LINE__, (char)ch,   \
-			nowMant_integPart?'Y':'N',nowMant_fractPart?'Y':'N',nowExp?'Y':'N');   \
+		printf("\t\e[31;7mLn%3d\e[0m  [ch='%c']  Cond \"" #cond "\" holds not.\n",   \
+			__LINE__, (char)ch);   \
 		return 0; }    } while (0)
 	/* We shall consider an input valid iff all these hold:
 		o	ctDigitsMant_integPart + ctDigitsMant_fractPart > 0.
