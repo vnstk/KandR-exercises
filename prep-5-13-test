@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+declare -ri nLines=$1
+declare -ri mWide=$2
+declare -i i
+for (( i=1 ; i <= nLines ; ++i )); do
+	printf -v restOf "%"$[mWide-8]"s" ''
+	printf "Ln %04d %s\n" $i "${restOf// /X}"
+done
+
