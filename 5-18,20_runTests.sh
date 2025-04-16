@@ -20,6 +20,10 @@ dcl		'char (*(*x())[])()'   'x: function returning pointer to array[] of pointer
 dcl		'char (*(*x[3])())[5]'   'x: array[3] of pointer to function returning pointer to array[5] of char'
 # Test cases from the book (p 122), here as regression test cases --- END
 
+dcl		'char*const* (*foonction)()'
+dcl		'char (*(*x[3])( ))[5]'
+exit 0
+
 
 exit 0
 dcl		'static const int **static_ptr_to_ptr_to_const_int'
@@ -34,6 +38,7 @@ dcl		'int argc'
 # Addit'l test --- END
 
 # Test cases which dcl could not handle before my changes --- BEGIN
+dcl		'extern register unsigned long int argc'
 dcl		'extern register int argc'
 dcl		'char (*(*x[3])( ))[5]'
 # Test cases which dcl could not handle before my changes --- END

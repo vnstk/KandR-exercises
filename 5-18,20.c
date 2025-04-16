@@ -90,22 +90,21 @@ main()  /* convert declaration to words */
 			strcat(storageClassSpecifiers, token);
 			continue;
 		}
-#if 1
-strcpy(datatype, token);  /* is the datatype */
-#else
+
 		while (possPartOf_qualDatatype(token)) {
 			strcat(datatype, " ");
 			strcat(datatype, token);
+			*token = '\0';
 			tokentype = gettoken();
 			continue;
 		}
 		ungetch(tokentype);
-#endif
-		PRstate;
+
 		out[0] = '\0';
 		dcl();	   /* parse rest of line */
+PRstate;
 		if (tokentype != '\n')
-			printf(FLfmt "\e[31;1syntax error\e[0m\n", FLemit);
+			printf(FLfmt "\e[31;1msyntax error\e[0m\n", FLemit);
 		printf("%s: %s %s %s\n", name, storageClassSpecifiers, out, datatype);
 	}
 	return 0;
@@ -141,16 +140,35 @@ int gettoken(void)  /* return next token */
 		return tokentype = c;
 }
 
+typedef enum { plainPTR = 1, constPTR } pointyEnd_t;
+
 /* dcl:  parse a declarator */
 void dcl(void)
 {
+	int ns, i=0;
+	pointyEnd_t stack[20];
+	memset(stack,'\0',sizeof stack);
 	PRstate;
-	int ns;
-	for (ns = 0; gettoken() == '*'; ) /* count *'s */
-		ns++;
+	for (ns = 0;;) {
+		if (gettoken() != '*') /* Not pointy? */
+			break;
+		gettoken();
+		if (NAME == tokentype && !strcmp(token,"const")) {
+			stack[ns++] = constPTR;
+		} else {
+			stack[ns++] = plainPTR;
+			if ('*' != tokentype)
+				break;
+			ungetch(tokentype);
+		}
+	}
 	dirdcl();
-	while (ns-- > 0)
-		strcat(out, " pointer to");
+	while (i < ns) {
+		if (stack[i++] == constPTR)
+			strcat(out, " const-pointer-to");
+		else
+			strcat(out, " pointer-to");
+	}
 }
 /* dirdcl:  parse a direct declarator */
 void dirdcl(void)
