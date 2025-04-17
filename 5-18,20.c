@@ -44,6 +44,15 @@ void skipWhitespace (int *const pch)
 	while ((*pch = getch()) == ' ' || *pch == '\t')
 		;
 }
+void indent (int nestDepth)
+{
+	if (nestDepth) {
+		int i;
+		printf("\n");
+		for (i = 1; i <= nestDepth; ++i)
+			printf("\t");
+	}
+}
 
 int possPartOf_storClassSpecifier (const char *const s)
 {
@@ -68,22 +77,33 @@ typedef struct {
 } bufConj_t;
 bufConj_t toplev;
 
-void dcl(void);
-void dirdcl(void);
+void subdecl(int nestDepth, bufConj_t*);
+void dcl(int nestDepth, bufConj_t*);
+void dirdcl(int nestDepth, bufConj_t*);
 int gettoken(void);
 
 int tokentype;		   /* type of last token */
 char token[MAXTOKEN];	/* last token string */
 char storageClassSpecifiers[MAXTOKEN*2]; /* auto|register|static|extern */
 char name[MAXTOKEN];	 /* identifier name */
-char datatype[MAXTOKEN]; /* data type = char, int, etc. */
+char qualDatatype[MAXTOKEN]; /* data type = char, int, etc. */
 char out[1000];
 
+#define MARKentry \
+	printf("\t\e[32mEntered %7s, nestDepth=%d ttyp=%s token=\"%s\"\e[0m\n",   \
+	       __func__, nestDepth, toktyStr(tokentype), token)
 
-#define PRstate printf("\t\e[33m" FLfmt " tokty<%s> tok=\"%s\" ungotten='%c'\e[0m\n", FLemit,toktyStr(tokentype),token,(bufp>0)?buf[0]:'?')
+#define MARKxitg \
+	printf("\t\e[36mExiting %7s, nestDepth=%d ttyp=%s token=\"%s\"\n\t\t_name[%s] _quaDa[%s] _out[%s]\e[0m\n",   \
+	       __func__, nestDepth, toktyStr(tokentype), token, bufCj->_name, bufCj->_qualDatatype, bufCj->_out)
+
+#define PRstate \
+	printf("\t\e[33m" FLfmt " tokty<%s> tok=\"%s\" ungotten='%c'\e[0m\n",    \
+	       FLemit,toktyStr(tokentype),token,(bufp>0)?buf[0]:'?')
 
 main()  /* convert declaration to words */
 {
+	bufConj_t *bufCj = &toplev;
 	while (gettoken() != EOF) {   /* 1st token on line */
 		if (possPartOf_storClassSpecifier(token)) {
 			strcat(storageClassSpecifiers, " ");
@@ -91,21 +111,7 @@ main()  /* convert declaration to words */
 			continue;
 		}
 
-		while (possPartOf_qualDatatype(token)) {
-			strcat(datatype, " ");
-			strcat(datatype, token);
-			*token = '\0';
-			tokentype = gettoken();
-			continue;
-		}
-		ungetch(tokentype);
-
-		out[0] = '\0';
-		dcl();	   /* parse rest of line */
-PRstate;
-		if (tokentype != '\n')
-			printf(FLfmt "\e[31;1msyntax error\e[0m\n", FLemit);
-		printf("%s: %s %s %s\n", name, storageClassSpecifiers, out, datatype);
+		subdecl(/*nestDepth*/ 0, bufCj);
 	}
 	return 0;
 }
@@ -140,19 +146,56 @@ int gettoken(void)  /* return next token */
 		return tokentype = c;
 }
 
-typedef enum { plainPTR = 1, constPTR } pointyEnd_t;
 
+/* Either
+	o	Entire decl, except for storage-class specifiers.
+		o	Terminated by LF.
+		o	Name mandatory.
+	o	A func param.
+		o	Terminated by comma or Rparen.
+		o	Name optional.
+*/
+void subdecl(int nestDepth, bufConj_t *bufCj)
+{
+	MARKentry;
+	PRstate;
+	while (possPartOf_qualDatatype(token)) {
+		strcat(bufCj->_qualDatatype, " ");
+		strcat(bufCj->_qualDatatype, token);
+		*token = '\0';
+		tokentype = gettoken();
+		continue;
+	}
+	ungetch(tokentype);
+	if (! *bufCj->_qualDatatype)
+		strcpy(bufCj->_qualDatatype, "int "); /* If datatype missing, assume int. */
+	bufCj->_out[0] = '\0';
+	dcl(nestDepth, bufCj);	   /* parse rest of line */
+PRstate;
+	if (nestDepth > 0) {
+		if (tokentype == NAME)
+			strcpy(bufCj->_name, token);
+		else
+	if (tokentype != '\n')
+		printf(FLfmt "\e[31;1msyntax error\e[0m\n", FLemit);
+	}
+	printf("%s: %s %s %s\n", bufCj->_name, storageClassSpecifiers, bufCj->_out, bufCj->_qualDatatype);
+	MARKxitg;
+}
+
+typedef enum { plainPTR = 1, constPTR } pointyEnd_t;
 /* dcl:  parse a declarator */
-void dcl(void)
+void dcl(int nestDepth, bufConj_t *bufCj)
 {
 	int ns, i=0;
+	MARKentry;
 	pointyEnd_t stack[20];
 	memset(stack,'\0',sizeof stack);
 	PRstate;
 	for (ns = 0;;) {
 		if (gettoken() != '*') /* Not pointy? */
 			break;
-		gettoken();
+		tokentype = gettoken();
 		if (NAME == tokentype && !strcmp(token,"const")) {
 			stack[ns++] = constPTR;
 		} else {
@@ -162,35 +205,71 @@ void dcl(void)
 			ungetch(tokentype);
 		}
 	}
-	dirdcl();
+	dirdcl(nestDepth, bufCj);
 	while (i < ns) {
 		if (stack[i++] == constPTR)
-			strcat(out, " const-pointer-to");
+			strcat(bufCj->_out, " const-pointer-to");
 		else
-			strcat(out, " pointer-to");
+			strcat(bufCj->_out, " pointer-to");
 	}
+	MARKxitg;
 }
-/* dirdcl:  parse a direct declarator */
-void dirdcl(void)
+
+
+void fuParms(int nestDepth, bufConj_t *bufCj)
 {
+	MARKentry;
 	PRstate;
+	for (;;) { /* If is a 2nd func params, do this dance again. */
+		bufConj_t sublevel;
+		memset(&sublevel,'\0',sizeof sublevel);
+		subdecl(nestDepth+1, &sublevel);
+		indent(nestDepth+1);
+		printf("%s: %s %s\n",
+				     sublevel._name, sublevel._out, sublevel._qualDatatype);
+		if (tokentype != ',')
+			break;
+		indent(nestDepth+1);
+		printf(",\n");
+	}
+	MARKxitg;
+}
+
+
+/* dirdcl:  parse a direct declarator */
+void dirdcl(int nestDepth, bufConj_t *bufCj)
+{
 	int type;
+	MARKentry;
+	PRstate;
 	if (tokentype == '(') {		 /* ( dcl ) */
-		dcl();
-		if (tokentype != ')')
-			printf(FLfmt "\e[31;1merror: missing )\n\e[0m", FLemit);
+		PRstate;
+		const int peektokty = gettoken();
+		ungetch(peektokty);
+printf("\t\e[36m""peektokty=%s\n",toktyStr(peektokty));
+		if (peektokty == '*' || peektokty == ')') {
+			dcl(nestDepth,bufCj); /* As of old. */
+			if (tokentype != ')')
+				printf(FLfmt "\e[31;1merror: missing )\n\e[0m", FLemit);
+		} else {
+			fuParms(nestDepth,bufCj);
+		}
 	} else if (tokentype == NAME)  /* variable name */
-		strcpy(name, token);
-	else
-		printf(FLfmt "\e[31;1merror: expected name or (dcl)\n\e[0m", FLemit);
+		strcpy(bufCj->_name, token);
+	else {
+		/* below toplev, names are optional; at toplev, we error-recover by... */
+		if (nestDepth == 0)
+			strcpy(bufCj->_name, "freddie"); /* ...inventing a name. */
+	}
 	while ((type=gettoken()) == PARENS || type == BRACKETS)
 		if (type == PARENS)
-			strcat(out, " function returning");
+			strcat(bufCj->_out, " function returning");
 		else {
-			strcat(out, " array");
-			strcat(out, token);
-			strcat(out, " of");
+			strcat(bufCj->_out, " array");
+			strcat(bufCj->_out, token);
+			strcat(bufCj->_out, " of");
 		}
+	MARKxitg;
 }
 
 int getch(void)  /* get a (possibly pushed-back) character */

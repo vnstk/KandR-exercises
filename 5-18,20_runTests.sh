@@ -11,19 +11,16 @@ dcl() {
 	./$binaryName <<<"$inp" || printf "\e[31mExited %d\e[0m\n" $?
 }
 
-# Test cases from the book (p 122), here as regression test cases --- BEGIN
-dcl		'char **argv'   'argv:  pointer to char'
-dcl		'int *daytab[13]'   'daytab:  array[13] of pointer to int'
-dcl		'void *comp()'   'comp: function returning pointer to void'
-dcl		'void (*comp)()'   'comp: pointer to function returning void'
-dcl		'char (*(*x())[])()'   'x: function returning pointer to array[] of pointer to function returning char'
-dcl		'char (*(*x[3])())[5]'   'x: array[3] of pointer to function returning pointer to array[5] of char'
-# Test cases from the book (p 122), here as regression test cases --- END
+dcl		'float foo(char ch, unsigned un)'
 
-dcl		'char*const* (*foonction)()'
-dcl		'char (*(*x[3])( ))[5]'
 exit 0
 
+dcl		'qux[5]'
+dcl		'char*const* (*foonction)()'
+dcl		'char (*(*x[3])( ))[5]'
+
+dcl		'float foo(char   , unsigned   )'
+dcl		'float foo()'
 
 exit 0
 dcl		'static const int **static_ptr_to_ptr_to_const_int'
