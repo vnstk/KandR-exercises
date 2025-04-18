@@ -11,9 +11,17 @@ dcl() {
 	./$binaryName <<<"$inp" || printf "\e[31mExited %d\e[0m\n" $?
 }
 
-dcl		'float foo(char ch, unsigned un)'
+dcl		'double fuu()'
+dcl		'double *fuu()'
+dcl		'double foo(char x)'
+dcl		'double foo(char)'
+dcl		'float foo(char x, unsigned y)'
+dcl		'float foo(char *x, unsigned y)'
+dcl		'float foo(char const *x, unsigned y)'
+dcl 	'float *const pf'
 
 exit 0
+
 
 dcl		'qux[5]'
 dcl		'char*const* (*foonction)()'
