@@ -1,9 +1,7 @@
-/*ideas
-o	Instead of printing "token" alw, print only when it changes value; same for others.
-o	Trace also getch(), as well as ungethc().
-*/
+/* Vainstein K 2025apr14 --- my work is the diff between 5-cdecl2englishBook.c and this file */
 
-/* What K&R call "dcl" */
+/*TODO: impl "vstrcat(dest *, ...)" for more concise code.
+*/
 
 /* func+line info; invaluable to provide context. */
 #define FLemit __func__,__LINE__
@@ -15,6 +13,7 @@ o	Trace also getch(), as well as ungethc().
 #include <string.h>
 #include <ctype.h>
 #define MAXTOKEN  100
+/* Made NAME be 1, to avoid confusion with NUL. */
 enum { NAME=1, PARENS, BRACKETS };
 
 #define BUFSIZE 100
@@ -46,18 +45,17 @@ int reachedEnd_wholeDecl (const int tokty)
 {
 	return tokty == EOF || tokty == '\n' || tokty == '\0';
 }
-
 int reachedEnd_fuParam (const int tokty)
 {
 	return tokty == ',' || tokty == ')';
 }
-
 
 void skipWhitespace (int *const pch)
 {
 	while ((*pch = getch()) == ' ' || *pch == '\t')
 		;
 }
+
 void indent (int nestDepth, char *dest)
 {
 		int i;
@@ -100,11 +98,6 @@ int gettoken(FLtake);
 int tokentype;		   /* type of last token */
 char token[MAXTOKEN];	/* last token string */
 char storageClassSpecifiers[MAXTOKEN*2]; /* auto|register|static|extern */
-#if 0
-char name[MAXTOKEN];	 /* identifier name */
-char qualDatatype[MAXTOKEN]; /* data type = char, int, etc. */
-char out[1000];
-#endif
 
 #ifdef DBG
 #define MARKentry \
@@ -122,8 +115,6 @@ char out[1000];
 #define PRstate \
 	printf("\t\e[33m" FLfmt " tokty<%s> tok=\"%s\" ungotten='%c'\e[0m  _name[%s]  _dtyp[%s]  nestDepth=%d\n",    \
 	       FLemit,toktyStr(tokentype),token,(bufp>0)?buf[0]:'?', bufCj->_name,bufCj->_qualDatatype, nestDepth)
-#else
-#define PRstate
 #endif
 
 
@@ -228,7 +219,6 @@ int gettoken(FLtake)  /* return next token */
 void subdecl(int nestDepth, bufConj_t *bufCj)
 {
 	MARKentry;
-	PRstate;
 	while (possPartOf_qualDatatype(token)) {
 		strcat(bufCj->_qualDatatype, " ");
 		strcat(bufCj->_qualDatatype, token);
@@ -242,13 +232,11 @@ void subdecl(int nestDepth, bufConj_t *bufCj)
 		strcpy(bufCj->_qualDatatype, "int "); /* If datatype missing, assume int. */
 		SETdatatyp;
 	}
-#if 0
-	bufCj->_out[0] = '\0';
-#endif
-PRstate;
 	dcl(nestDepth, bufCj);	   /* parse rest of line */
 		if (nestDepth == 0 && reachedEnd_wholeDecl(tokentype))
-			printf("%s: %s %s %s\n", bufCj->_name, storageClassSpecifiers, bufCj->_out, bufCj->_qualDatatype);
+			printf("%s: %s %s %s\n",
+			       bufCj->_name,
+			       storageClassSpecifiers, bufCj->_out, bufCj->_qualDatatype);
 	MARKxitg;
 }
 
@@ -260,7 +248,6 @@ void dcl(int nestDepth, bufConj_t *bufCj)
 	MARKentry;
 	pointyEnd_t stack[20];
 	memset(stack,'\0',sizeof stack);
-	PRstate;
 	for (ns = 0;;) {
 		if (ns)
 			gettoken(FLemit);
@@ -292,7 +279,6 @@ void dcl(int nestDepth, bufConj_t *bufCj)
 void fuParms(int nestDepth, bufConj_t *bufCj)
 {
 	MARKentry;
-	PRstate;
 	int expectMoreParams;
 	if (tokentype == '(')
 		gettoken(FLemit);
@@ -301,7 +287,6 @@ void fuParms(int nestDepth, bufConj_t *bufCj)
 		bufConj_t sublevel;
 		memset(&sublevel,'\0',sizeof sublevel);
 		subdecl(nestDepth+1, &sublevel);
-PRstate;
 		sprintf(currparambuf, "%s: %s %s\n",
 				     sublevel._name, sublevel._out, sublevel._qualDatatype);
 		strcat(bufCj->_out, "\n");
@@ -331,7 +316,6 @@ void dirdcl(int nestDepth, bufConj_t *bufCj)
 {
 	int type;
 	MARKentry;
-	PRstate;
 	if (tokentype == '(') {
 		int starting_fuParams;
 		const peektokty = gettoken(FLemit);
@@ -348,14 +332,7 @@ void dirdcl(int nestDepth, bufConj_t *bufCj)
 		SETname(token);
 	} else {
 		if (nestDepth && reachedEnd_fuParam(tokentype))
-#if 0
-		if (tokentype == ')' && nestDepth > 0)
-#endif
 			ungetch(FLemit, tokentype);
-#if 0
-		if (nestDepth == 0 && ! *bufCj->_name)
-			printf("\e[31;1m" FLfmt " Lack name\e[0m\n",FLemit);
-#endif
 	}
 	while ((type=gettoken(FLemit)) == PARENS || type == BRACKETS || type == '(') {
 		if (type == '(') {
