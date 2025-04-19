@@ -165,13 +165,11 @@ void strip_comments_and_stringLiterals (void (*postProcessLine)(void))
 			chPrev         = chCurr;
 			chPrev_escaped = chCurr_escaped;
 		}
-if (strlen(lineOutp)>1) {
 #ifdef DBG
 		printf("\n\t\t\e[32;7m len=%-2zu\e[27m  %s\e[0m", strlen(lineOutp),lineOutp);
 		/*fputs(lineOutp, stdout);*/
 #endif
 		postProcessLine();
-}
 	}
 }
 
@@ -182,11 +180,9 @@ if (strlen(lineOutp)>1) {
 void cb__postProcessLine (void) {
 	p_lineOutp = lineOutp; /* p_lineOutp is used by getchMine() */
 	char word[MAXWORD];
-int lim=0;
-if (strlen(lineOutp)<2)return;
 	while (getwordMine(word,MAXWORD) != '\n') {
+if(!*word)break;
 		puts(word);
-if (++lim>20)break;
 	}
 }
 
