@@ -1,14 +1,12 @@
 /* Vainstein K 2025apr14 --- my work is the diff between 5-cdecl2englishBook.c and this file */
 
-/*TODO: impl "vstrcat(dest *, ...)" for more concise code.
-*/
-
 /* func+line info; invaluable to provide context. */
 #define FLemit __func__,__LINE__
 #define FLtake const char *fu, const int li
 #define FLfmt "/%s:%d/   "
 #define FLpass fu, li
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -21,6 +19,20 @@ char buf[BUFSIZE];	/* buffer for ungetch */
 int bufp = 0;		 /* next free position in buf */
 int getch(void);
 void ungetch(FLtake, int);
+
+char *vstrcat (char *dest, ...) /* Purely for more concise code. */
+{
+	va_list ap;
+	va_start(ap, dest);
+	const char *src;
+	while ((src = va_arg(ap, const char *))) {
+		(void) strcat(dest, src);
+	}
+	va_end(ap);
+	return dest;
+}
+
+
 
 const char *toktyStr (const int tokty)
 {
@@ -76,18 +88,19 @@ int possPartOf_qualDatatype (const char *const s)
 		!strcmp(s,"float") || !strcmp(s,"double") ||
 		!strcmp(s,"short") || !strcmp(s,"long") ||
 		!strcmp(s,"signed") || !strcmp(s,"unsigned") ||
-		!strcmp(s,"const") || !strcmp(s,"volatile");
+		!strcmp(s,"const") || !strcmp(s,"volatile") ||
+		!strcmp(s,"bool") || !strcmp(s,"va_list");
 }
 
 typedef struct {
 	char _name[MAXTOKEN];	 /* identifier name */
+	char _pointerObj_cvQual[32]; /* If see "const char *const p", the
+		_2nd_ const therein is a pointer-obj CV-qual. */
 	char _qualDatatype[MAXTOKEN*4]; /* char|int|...; also const|volatile */
 	char _out[1000];
 } bufConj_t;
 bufConj_t toplev;
 
-/* Rule: when entering any of the 4 funcs declared below, both tokentype
-   and token must be populated such that they're legal for the given form. */
 void subdecl(int nestDepth, bufConj_t*);
 void fuParms(int nestDepth, bufConj_t*);
 void dcl(int nestDepth, bufConj_t*);
@@ -98,18 +111,6 @@ int gettoken(FLtake);
 int tokentype;		   /* type of last token */
 char token[MAXTOKEN];	/* last token string */
 char storageClassSpecifiers[MAXTOKEN*2]; /* auto|register|static|extern */
-
-#ifdef DBG
-#define MARKentry \
-	printf("\t\e[32mEntered %7s, ^%d ttyp=%s token=\"%s\"\e[0m\n",   \
-	       __func__, nestDepth, toktyStr(tokentype), token)
-#define MARKxitg \
-	printf("\t\e[36mExiting %7s, ^%d ttyp=%s token=\"%s\"\e[0m\n",   \
-	       __func__, nestDepth, toktyStr(tokentype), token)
-#else
-#define MARKentry
-#define MARKxitg
-#endif
 
 #if 0
 #define PRstate \
@@ -123,8 +124,7 @@ main()  /* convert declaration to words */
 	bufConj_t *bufCj = &toplev;
 	while (gettoken(FLemit) != EOF) {   /* 1st token on line */
 		if (possPartOf_storClassSpecifier(token)) {
-			strcat(storageClassSpecifiers, " ");
-			strcat(storageClassSpecifiers, token);
+			vstrcat(storageClassSpecifiers, " ", token, NULL);
 			continue;
 		}
 
@@ -218,10 +218,8 @@ int gettoken(FLtake)  /* return next token */
 */
 void subdecl(int nestDepth, bufConj_t *bufCj)
 {
-	MARKentry;
 	while (possPartOf_qualDatatype(token)) {
-		strcat(bufCj->_qualDatatype, " ");
-		strcat(bufCj->_qualDatatype, token);
+		vstrcat(bufCj->_qualDatatype, " ", token, NULL);
 		SETdatatyp;
 		SETtoken("");
 		tokentype = gettoken(FLemit);
@@ -234,10 +232,9 @@ void subdecl(int nestDepth, bufConj_t *bufCj)
 	}
 	dcl(nestDepth, bufCj);	   /* parse rest of line */
 		if (nestDepth == 0 && reachedEnd_wholeDecl(tokentype))
-			printf("%s: %s %s %s\n",
-			       bufCj->_name,
+			printf("%s: %s %s %s %s\n",
+			       bufCj->_name, bufCj->_pointerObj_cvQual,
 			       storageClassSpecifiers, bufCj->_out, bufCj->_qualDatatype);
-	MARKxitg;
 }
 
 typedef enum { plainPTR = 1, constPTR } pointyEnd_t;
@@ -245,14 +242,18 @@ typedef enum { plainPTR = 1, constPTR } pointyEnd_t;
 void dcl(int nestDepth, bufConj_t *bufCj)
 {
 	int ns, i=0;
-	MARKentry;
 	pointyEnd_t stack[20];
 	memset(stack,'\0',sizeof stack);
 	for (ns = 0;;) {
 		if (ns)
 			gettoken(FLemit);
-		if (tokentype != '*') /* Not pointy? */
+		if (tokentype != '*') { /* Not pointy? */
+			if (tokentype==NAME && !strcmp(token,"const")) {
+				strcpy(bufCj->_pointerObj_cvQual,"const");
+				continue;
+			}
 			break;
+		}
 		tokentype = gettoken(FLemit);
 		if (NAME == tokentype && !strcmp(token,"const")) {
 			stack[ns++] = constPTR;
@@ -272,13 +273,11 @@ void dcl(int nestDepth, bufConj_t *bufCj)
 			strcat(bufCj->_out, " pointer-to");
 		SETout;
 	}
-	MARKxitg;
 }
 
 
 void fuParms(int nestDepth, bufConj_t *bufCj)
 {
-	MARKentry;
 	int expectMoreParams;
 	if (tokentype == '(')
 		gettoken(FLemit);
@@ -287,8 +286,8 @@ void fuParms(int nestDepth, bufConj_t *bufCj)
 		bufConj_t sublevel;
 		memset(&sublevel,'\0',sizeof sublevel);
 		subdecl(nestDepth+1, &sublevel);
-		sprintf(currparambuf, "%s: %s %s\n",
-				     sublevel._name, sublevel._out, sublevel._qualDatatype);
+		sprintf(currparambuf, "%s: %s %s %s\n", sublevel._name,
+		        sublevel._pointerObj_cvQual, sublevel._out, sublevel._qualDatatype);
 		strcat(bufCj->_out, "\n");
 		indent(nestDepth+1,bufCj->_out);
 		strcat(bufCj->_out,currparambuf);
@@ -307,7 +306,6 @@ void fuParms(int nestDepth, bufConj_t *bufCj)
 		strcat(bufCj->_out, ",\n");
 		SETout;
 	}
-	MARKxitg;
 }
 
 
@@ -315,7 +313,6 @@ void fuParms(int nestDepth, bufConj_t *bufCj)
 void dirdcl(int nestDepth, bufConj_t *bufCj)
 {
 	int type;
-	MARKentry;
 	if (tokentype == '(') {
 		int starting_fuParams;
 		const peektokty = gettoken(FLemit);
@@ -345,18 +342,14 @@ void dirdcl(int nestDepth, bufConj_t *bufCj)
 			}
 			indent(nestDepth, bufCj->_out);
 			strcat(bufCj->_out, " and returning");
-			MARKxitg;
 			return;
 		} else if (type == PARENS)
 			strcat(bufCj->_out, " function returning");
 		else {
-			strcat(bufCj->_out, " array");
-			strcat(bufCj->_out, token);
-			strcat(bufCj->_out, " of");
+			vstrcat(bufCj->_out, " array", token, " of", NULL);
 		}
 		SETout;
 	}
-	MARKxitg;
 }
 
 int getch(void)  /* get a (possibly pushed-back) character */
@@ -365,12 +358,8 @@ int getch(void)  /* get a (possibly pushed-back) character */
 }
 void ungetch(FLtake, int c)   /* push character back on input */
 {
-#ifdef DBG
-	printf("\t\e[35;3mcaller\e[23m" FLfmt "| \e[3mOOONGE\e[23mtch  '%s' or %d\e[0m\n", FLpass, toktyStr(c),c);
-#endif
 	if (bufp >= BUFSIZE)
 		printf("ungetch: too many characters\n");
 	else
 		buf[bufp++] = c;
 }
-

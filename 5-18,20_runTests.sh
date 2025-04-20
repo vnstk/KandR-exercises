@@ -11,6 +11,16 @@ dcl() {
 	./$binaryName <<<"$inp" || printf "\e[31mExited %d\e[0m\n" $?
 }
 
+
+dcl 	'float *const pf'
+dcl 	'float const* pf'
+dcl 	'float const* const pf'
+dcl 	'const char cha'
+dcl 	'char const cha'
+exit 0
+
+dcl		'bool getline (char *const buf, const int buflen)'
+
 dcl		'double fuu()'
 dcl		'double *fuu()'
 dcl		'double foo(char x)'
@@ -18,9 +28,17 @@ dcl		'double foo(char)'
 dcl		'float foo(char x, unsigned y)'
 dcl		'float foo(char *x, unsigned y)'
 dcl		'float foo(char const *x, unsigned y)'
-dcl 	'float *const pf'
+dcl		'const char *toktyStr (const int tokty)'
+dcl		'char *vstrcat (char *dest, ...)'
+dcl		'char c=EOF, prev'
+dcl		'char ns, cha=0'
+dcl		'char foo[LEN], *bar[LEN], fqux()'
+dcl		'bool insideComment=false, insideStrLiteral=false, insideCharLiteral=false'
+dcl		'void strip_comments_and_stringLiterals (void (*postProcessLine)(void))'
+dcl		'int possPartOf_storClassSpecifier (const char *const s)'
 
 exit 0
+void ungetch(FLtake, int c)
 
 
 dcl		'qux[5]'
