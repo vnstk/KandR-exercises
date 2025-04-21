@@ -35,31 +35,14 @@ void addItem (int const line, char const *const s)
 	items[idest]._line = line;
 }
 
-/* Copied from 1-22.c solution; does remove LF from read-in line. */
-bool getline (char *const buf, int const buflen)
-{
-    memset(buf, '\0', buflen);
-    int c=EOF, i;
-    for (i=0; (c=getchar())!=EOF && c!='\n'; ++i) {
-        if (i >= buflen-2) {
-            fprintf(stderr, "Buffer too small.\n");
-            return false;
-        }
-        buf[i] = c;
-    }
-    return c != EOF;
-}
-
 bool isNoiseword (char const *const s)
 {
 	static char const *blacklist[] = {
 		"the" , "a" , "an" ,
 		"is", "was", "will", "are", "were",
 		"and" , "or" , "not", "as", "but",
-		"from", "to", "of", "at", "on", "in", "with", "about" ,
-		"what", "who", "whom", "he", "him", "you",
-		"it", "that" , "this" , "these", "those",
-		"they", "them", "their",
+		"of", "at", "on", "in",
+		"what", "it", "that" , "this" ,
 	};
 	int i;
 	for (i = 0; i < sizeof blacklist / sizeof blacklist[0]; ++i)
@@ -68,7 +51,7 @@ bool isNoiseword (char const *const s)
 	return false;
 }
 
-#define WORD_SEPARATOR_CHARS " \t\".,;:()[]<>-?!/"
+#define WORD_SEPARATOR_CHARS " \t\n\".,;:()[]<>-?!/"
 #define BUFLEN 1024
 main ()
 {
@@ -76,7 +59,7 @@ main ()
 	int i, lineOrdinal=0;
 	char line[BUFLEN], *word;
 
-	while (getline(line,sizeof line) && ++lineOrdinal) {
+	while (fgets(line,sizeof line,stdin) && ++lineOrdinal) {
 		if (! (word = strtok(line,WORD_SEPARATOR_CHARS)))
 			continue;
 		do {

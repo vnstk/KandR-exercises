@@ -26,23 +26,6 @@ void pr_varnames (void)
 }
 
 
-/* Copied from 1-23.c solution; does not remove LF from read-in line. */
-bool getline (char *const buf, const int buflen)
-{
-	memset(buf, '\0', buflen);
-	int c=EOF, i;
-	for (i=0; (c=getchar())!=EOF; ++i) {
-		if (i >= buflen-2) {
-			fprintf(stderr, "Buffer too small.\n");
-			return false;
-		}
-		buf[i] = c;
-		if (c == '\n')
-			break;
-	}
-	return c != EOF;
-}
-
 int isNonNewlineWhtspc(int ch)
 {
 	return ch == ' ' || ch == '\t';
@@ -89,7 +72,7 @@ void strip_comments_and_stringLiterals (void (*postProcessLine)(void))
 	char lineInp[BUFLEN]                   ; /* We must buffer output, instead
 		of just printing it to stdout right away, because of the case of starting
 		a comment: when we see *, we've already printed the / directly preceding! */
-	while (getline(lineInp, sizeof lineInp)) {
+	while (fgets(lineInp, sizeof lineInp, stdin)) {
 		const int origLen = strlen(lineInp);
 		char chPrev='\0'         , chCurr;
 		bool chPrev_escaped=false, chCurr_escaped=false;
@@ -238,7 +221,6 @@ main (const int argc, const char *argv[])
 	dedupeVarnames();
 #if 0
     printf("post-dedupe nVarnames = %d\n",nVarnames);
-	pr_varnames();
 #endif
     /*phase-4: group by prefix of desired len*/
 	for (igroupFrom=0,igroupUntil=1; igroupUntil <= nVarnames;) {
@@ -264,10 +246,6 @@ main (const int argc, const char *argv[])
 #define BUFSIZE 100
 char buf[BUFSIZE];	/* buffer for ungetch */
 int bufp = 0;		 /* next free position in buf */
-int getchBook(void)  /* get a (possibly pushed-back) character */
-{
-	return (bufp > 0) ? buf[--bufp] : getchar();
-}
 void ungetch(int c)   /* push character back on input */
 {
 	if (bufp >= BUFSIZE)

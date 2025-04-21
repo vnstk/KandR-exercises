@@ -54,22 +54,7 @@ occurrence_t *addItem (char *const sStored)
 	return occ;
 }
 
-/* Copied from 1-22.c solution; does remove LF from read-in line. */
-bool getline (char *const buf, int const buflen)
-{
-    memset(buf, '\0', buflen);
-    int c=EOF, i;
-    for (i=0; (c=getchar())!=EOF && c!='\n'; ++i) {
-        if (i >= buflen-2) {
-            fprintf(stderr, "Buffer too small.\n");
-			return false;
-        }
-        buf[i] = c;
-    }
-    return c != EOF;
-}
-
-#define WORD_SEPARATOR_CHARS " \t\".,;:()[]<>-?!/"
+#define WORD_SEPARATOR_CHARS " \t\n\".,;:()[]<>-?!/"
 #define BUFLEN 1024
 main ()
 {
@@ -78,7 +63,7 @@ main ()
 	char line[BUFLEN];
 	char *word, *curr, *prev;
 
-	while (getline(line,sizeof line)) {
+	while (fgets(line,sizeof line,stdin)) {
 		if (! (word = strtok(line,WORD_SEPARATOR_CHARS)))
 			continue;
 		do {
