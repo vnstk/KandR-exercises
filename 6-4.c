@@ -1,4 +1,7 @@
 /* Vainstein K 2025apr21 */
+/*Test steps:
+	./a.exe < sampleDocument.txt
+*/
 
 #include <ctype.h>
 #include <stdbool.h>

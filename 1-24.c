@@ -1,4 +1,7 @@
 /* Vainstein K 2025mar20 */
+/*Test steps:
+	bash 1-24_runTests.sh
+*/
 #ifndef DBG
 #  define DBG 0
 #endif

@@ -1,4 +1,9 @@
 /* Vainstein K 2025apr13 */
+/*Test steps:
+	./a.exe < 5-13.c
+	./a.exe -3 < 5-13.c
+	./a.exe -33 < 5-13.c
+*/
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>

@@ -1,4 +1,8 @@
 /* Vainstein K 2025apr12 */
+/*Test steps:
+	./a.exe 2 3 4 + '*'
+  ; should print 14.
+*/
 
 #include <assert.h>
 #include <errno.h>

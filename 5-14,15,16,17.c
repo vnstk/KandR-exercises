@@ -1,4 +1,7 @@
 /* Vainstein K 2025apr13 */
+/*Test steps:
+	bash 5-14,15,16,17_runTests.sh
+*/
 
 /* Rules:
 	o	The problem statement makes clear that different fields' sort specs

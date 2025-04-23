@@ -1,4 +1,7 @@
 /* Vainstein K 2025apr09 --- my work is the diff between 5-linessorterBook.c and this file */
+/*Test steps:
+	./a.exe < 5-7.c
+*/
 
 #include <stdio.h>
 #include <string.h>

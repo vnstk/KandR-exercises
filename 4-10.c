@@ -1,4 +1,8 @@
 /* Vainstein K 2025mar28 --- my work is the diff between 4-calcBook.c and this file */
+/*Test steps:
+	./a.exe <<<'1 2 - 4 5 + *'
+  ; should print -9.
+*/
 
 #include <ctype.h>
 #include <stdio.h>

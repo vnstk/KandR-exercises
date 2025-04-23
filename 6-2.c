@@ -1,4 +1,9 @@
 /* Vainstein K 2025apr20 */
+/*Test steps:
+	./a.exe < 6-2.c
+	./a.exe 4 < 6-2.c
+	./a.exe 3 < 6-2.c
+*/
 /* Reckon to leverage the 6-1.c solution */
 
 #include <assert.h>

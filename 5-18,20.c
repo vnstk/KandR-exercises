@@ -1,4 +1,7 @@
 /* Vainstein K 2025apr14 --- my work is the diff between 5-cdecl2englishBook.c and this file */
+/*Test steps:
+	bash 5-18,20_runTests.sh
+*/
 
 /* func+line info; invaluable to provide context. */
 #define FLemit __func__,__LINE__
@@ -7,6 +10,7 @@
 #define FLpass fu, li
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -31,8 +35,6 @@ char *vstrcat (char *dest, ...) /* Purely for more concise code. */
 	va_end(ap);
 	return dest;
 }
-
-
 
 const char *toktyStr (const int tokty)
 {
@@ -98,10 +100,12 @@ typedef struct {
 		_2nd_ const therein is a pointer-obj CV-qual. */
 	char _qualDatatype[MAXTOKEN*4]; /* char|int|...; also const|volatile */
 	char _out[1000];
+	bool _did_printDeclDescription;
 } bufConj_t;
 bufConj_t toplev;
 
-void subdecl(int nestDepth, bufConj_t*);
+void printDeclDescription (bufConj_t *bufCj);
+void subdecl(int nestDepth, bufConj_t*, bool reuseDatatypeMode);
 void fuParms(int nestDepth, bufConj_t*);
 void dcl(int nestDepth, bufConj_t*);
 void dirdcl(int nestDepth, bufConj_t*);
@@ -122,14 +126,25 @@ char storageClassSpecifiers[MAXTOKEN*2]; /* auto|register|static|extern */
 main()  /* convert declaration to words */
 {
 	bufConj_t *bufCj = &toplev;
+#if 0
 	while (gettoken(FLemit) != EOF) {   /* 1st token on line */
-		if (possPartOf_storClassSpecifier(token)) {
-			vstrcat(storageClassSpecifiers, " ", token, NULL);
-			continue;
+#endif
+	while (! reachedEnd_wholeDecl(gettoken(FLemit))) {
+		const bool reuseDatatypeMode = tokentype == ',';
+		if (reuseDatatypeMode) {
+			if (! bufCj->_did_printDeclDescription)
+				printDeclDescription(bufCj);
+		} else {
+			if (possPartOf_storClassSpecifier(token)) {
+				vstrcat(storageClassSpecifiers, " ", token, NULL);
+				continue;
+			}
 		}
 
-		subdecl(/*nestDepth*/ 0, bufCj);
+		subdecl(/*nestDepth*/ 0, bufCj, reuseDatatypeMode);
 	}
+	if (! bufCj->_did_printDeclDescription)
+		printDeclDescription(bufCj);
 	return 0;
 }
 
@@ -216,8 +231,22 @@ int gettoken(FLtake)  /* return next token */
 		o	Terminated by comma or Rparen.
 		o	Name optional.
 */
-void subdecl(int nestDepth, bufConj_t *bufCj)
+void subdecl(int nestDepth, bufConj_t *bufCj, bool reuseDatatypeMode)
 {
+	if (reuseDatatypeMode) {
+		gettoken(FLemit); /* For dcl()'s benefit. */
+		printf("\n"); /* So remaining vars go on their own lines each. */
+		/* We're keeping datatype and storage class specifiers; reset the rest. */
+		memset(bufCj->_name,'\0',sizeof bufCj->_name);
+		memset(bufCj->_pointerObj_cvQual,'\0',sizeof bufCj->_pointerObj_cvQual);
+		memset(bufCj->_out,'\0',sizeof bufCj->_out);
+		/* ungetch state */
+		bufp=0;
+		memset(buf,'\0',sizeof buf);
+		/* and, of course, */
+		bufCj->_did_printDeclDescription=false;
+		goto done_with_datatype;
+	}
 	while (possPartOf_qualDatatype(token)) {
 		vstrcat(bufCj->_qualDatatype, " ", token, NULL);
 		SETdatatyp;
@@ -230,12 +259,28 @@ void subdecl(int nestDepth, bufConj_t *bufCj)
 		strcpy(bufCj->_qualDatatype, "int "); /* If datatype missing, assume int. */
 		SETdatatyp;
 	}
+done_with_datatype:
 	dcl(nestDepth, bufCj);	   /* parse rest of line */
-		if (nestDepth == 0 && reachedEnd_wholeDecl(tokentype))
+#if 0
+printf("\t\e[32m "FLfmt"  nestDepth=%d ; tokty='%s' or %d ; reuseDatatypeMode=%c  _did_printDeclDescription=%c\e[0m\n",FLemit,nestDepth,toktyStr(tokentype),tokentype,reuseDatatypeMode?'Y':'N',bufCj->_did_printDeclDescription?'Y':'N');
+#endif
+#if 1
+		if (nestDepth == 0 && (reachedEnd_wholeDecl(tokentype)))
+#else
+	if (nestDepth == 0 && (tokentype==',' || reachedEnd_wholeDecl(tokentype)))
+#endif
+		printDeclDescription(bufCj);
+}
+
+
+void printDeclDescription (bufConj_t *bufCj)
+{
 			printf("%s: %s %s %s %s\n",
 			       bufCj->_name, bufCj->_pointerObj_cvQual,
 			       storageClassSpecifiers, bufCj->_out, bufCj->_qualDatatype);
+	bufCj->_did_printDeclDescription=true;
 }
+
 
 typedef enum { plainPTR = 1, constPTR } pointyEnd_t;
 /* dcl:  parse a declarator */
@@ -285,7 +330,7 @@ void fuParms(int nestDepth, bufConj_t *bufCj)
 		char currparambuf[2048];
 		bufConj_t sublevel;
 		memset(&sublevel,'\0',sizeof sublevel);
-		subdecl(nestDepth+1, &sublevel);
+		subdecl(nestDepth+1, &sublevel, /*reuseDatatypeMode?*/ false);
 		sprintf(currparambuf, "%s: %s %s %s\n", sublevel._name,
 		        sublevel._pointerObj_cvQual, sublevel._out, sublevel._qualDatatype);
 		strcat(bufCj->_out, "\n");
@@ -302,7 +347,7 @@ void fuParms(int nestDepth, bufConj_t *bufCj)
 			}
 		}
 		gettoken(FLemit);
-		indent(nestDepth+1,bufCj->_out);
+		sndent(nestDepth+1,bufCj->_out);
 		strcat(bufCj->_out, ",\n");
 		SETout;
 	}
@@ -349,6 +394,9 @@ void dirdcl(int nestDepth, bufConj_t *bufCj)
 			vstrcat(bufCj->_out, " array", token, " of", NULL);
 		}
 		SETout;
+	}
+	if (type == ',' && nestDepth==0) {
+		ungetch(FLemit,type);
 	}
 }
 
